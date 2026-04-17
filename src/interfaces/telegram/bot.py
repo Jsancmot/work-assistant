@@ -93,6 +93,7 @@ def run_bot() -> None:
             listen="0.0.0.0",
             port=int(os.environ.get("PORT", 10000)),
             url_path="webhook",
+            webhook_url=webhook_url,
             allowed_updates=Update.ALL_TYPES,
         )
         logger.info("Starting Telegram bot in webhook mode…")
