@@ -142,6 +142,7 @@ gcp-oauth.keys.json
 .agents/
 .clueai/
 .claude/
+skills-lock.json
 .envrc
 .venv
 env/
