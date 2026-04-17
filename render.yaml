@@ -2,7 +2,7 @@ services:
   - name: work-assistant
     type: web
     plan: free
-    region: oregon
+    region: frankfurt
     runtime: python
     buildCommand: pip install -e .
     startCommand: python -m src.main
