@@ -1,119 +1,161 @@
-# Work Assistant
+**Work Assistant**
 
-A Telegram bot powered by an [Agno](https://docs.agno.com) AI agent with access to **Notion** and **Google** through the [Model Context Protocol (MCP)](https://modelcontextprotocol.io).
+Un bot de Telegram que usa un agente AI (Agno) con acceso a **Notion** y **Google** vía el Model Context Protocol (MCP). Este repositorio contiene la integración del agente, las herramientas MCP y la interfaz de Telegram.
+
+**Contenido rápido**
+
+- [Quick start](#quick-start)
+- [Requisitos](#requisitos)
+- [Variables de entorno](#variables-de-entorno)
+- [Ejecución local](#ejecuci%C3%B3n-local)
+- [Docker y despliegue](#docker-y-despliegue)
+- [Herramientas MCP](#herramientas-mcp)
+- [Desarrollo](#desarrollo)
+- [Cómo contribuir](#c%C3%B3mo-contribuir)
 
 ---
 
-## Architecture
+## Quick start
+
+Sigue estos pasos para ejecutar el bot localmente.
+
+Windows (PowerShell):
+
+```powershell
+git clone https://github.com/Jsancmot/work-assistant.git
+cd work-assistant
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+copy .env.example .env
+# Edita .env y añade las credenciales necesarias
+python -m src.main
+```
+
+Unix / macOS:
+
+```bash
+git clone https://github.com/Jsancmot/work-assistant.git
+cd work-assistant
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Edita .env y añade las credenciales necesarias
+python -m src.main
+```
+
+Nota: Algunos flujos requieren lanzar servidores MCP (Notion / Google). Se puede usar `npx` para iniciar servidores MCP locales si hace falta.
+
+---
+
+## Requisitos
+
+- Python 3.12+
+- Node.js 20+ (solo para lanzar servidores MCP con `npx`, opcional en producción)
+- Docker 24+ (opcional, para despliegues y pruebas locales con containers)
+
+Estructura principal del repo:
 
 ```
 work-assistant/
 ├── src/
-│   ├── agent/
-│   │   └── agent.py           # Agno agent with MCP tools
-│   ├── tools/
-│   │   ├── notion_mcp.py      # Notion MCP tool
-│   │   └── google_mcp.py      # Google MCP tool
-│   ├── interfaces/
-│   │   └── telegram/
-│   │       └── bot.py         # Telegram bot interface
-│   ├── config.py              # Configuration from environment variables
-│   └── main.py                # Entry point
+│   ├── agent/                # Agente y lógica principal
+│   ├── tools/                # Integraciones MCP (Notion, Google)
+│   └── interfaces/           # Interfaces (Telegram, etc.)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
 └── .env.example
 ```
 
-The architecture is intentionally layered so that new interfaces (WhatsApp, Teams, …) can be added under `src/interfaces/` without touching the agent or tool logic.
+---
+
+## Variables de entorno
+
+Rellena `.env` basándote en `.env.example`. Variables importantes:
+
+| Variable | Obligatoria | Descripción |
+|---|---:|---|
+| `GROQ_API_KEY` | ✅ | API key para el proveedor de LLM (Groq) |
+| `GROQ_MODEL` | — | Nombre del modelo (ej: `llama-3.3-70b-versatile`) |
+| `TELEGRAM_BOT_TOKEN` | ✅ | Token del bot desde @BotFather |
+| `NOTION_API_KEY` | ✅ | Secreto de integración de Notion |
+| `GOOGLE_CREDENTIALS_FILE` | ✅ | Ruta al JSON de credenciales OAuth de Google |
+| `AGENT_NAME` | — | Nombre que mostrará el agente (ej: "Work Assistant") |
+| `AGENT_INSTRUCTIONS` | — | Prompt del sistema (override opcional) |
+
+Ejemplo mínimo en `.env`:
+
+```
+GROQ_API_KEY=your_groq_key_here
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF
+NOTION_API_KEY=secret_notion_token
+GOOGLE_CREDENTIALS_FILE=./gcp-oauth.keys.json
+```
 
 ---
 
-## Prerequisites
+## Ejecución local
 
-| Tool | Minimum version | Purpose |
-|------|----------------|---------|
-| Python | 3.12 | Runtime |
-| Node.js | 20 | MCP servers launched via `npx` |
-| Docker | 24 | Containerisation (optional for local dev) |
-
----
-
-## Quick start (local)
-
-1. **Clone and install dependencies**
-
-   ```bash
-   git clone https://github.com/Jsancmot/work-assistant.git
-   cd work-assistant
-   python -m venv .venv && source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-
-2. **Configure environment variables**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env and fill in all required values
-   ```
-
-3. **Run**
-
-   ```bash
-   python -m src.main
-   ```
-
----
-
-## Environment variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `GROQ_API_KEY` | ✅ | Groq API key used by the agent (free at [console.groq.com](https://console.groq.com)) |
-| `GROQ_MODEL` | — | Model name (default: `llama-3.3-70b-versatile`) |
-| `TELEGRAM_BOT_TOKEN` | ✅ | Token from [@BotFather](https://t.me/BotFather) |
-| `NOTION_API_KEY` | ✅ | Notion integration secret |
-| `GOOGLE_CREDENTIALS_FILE` | ✅ | Path to the Google OAuth 2.0 credentials JSON file |
-| `AGENT_NAME` | — | Display name for the agent (default: `Work Assistant`) |
-| `AGENT_INSTRUCTIONS` | — | System prompt override |
-
----
-
-## Docker
-
-### Build and run with Docker Compose
+1. Asegúrate de tener las variables en `.env` correctamente configuradas.
+2. Si usas servidores MCP locales, lánzalos con `npx` según la documentación de cada servidor.
+3. Ejecuta el bot:
 
 ```bash
-cp .env.example .env   # fill in values
+python -m src.main
+```
+
+Flujo de ejemplo: Telegram -> `src/interfaces/telegram/bot.py` -> agente (`src/agent/agent.py`) -> herramientas MCP (`src/tools/*`) -> Notion/Drive.
+
+---
+
+## Docker y despliegue
+
+Construir y ejecutar con Docker Compose:
+
+```bash
+copy .env.example .env # Windows
+cp .env.example .env   # Unix
 docker compose up --build
 ```
 
-### Deploy to Render
+Desplegar en Render:
 
-1. Push this repository to GitHub.
-2. Create a new **Web Service** on [Render](https://render.com) and point it at the repository.
-3. Set the **Environment** to **Docker**.
-4. Add all required environment variables in the Render dashboard.
-5. Deploy.
-
-> **Tip:** Use Render's *Secret Files* feature to mount `credentials.json` securely.
+1. Subir el repo a GitHub.
+2. Crear un servicio Web en Render y seleccionar Docker.
+3. Añadir variables de entorno en el panel de Render.
+4. Usar Secret Files para montar `gcp-oauth.keys.json` de forma segura.
 
 ---
 
-## Tools
+## Herramientas MCP
 
-### Notion MCP
+- Notion MCP: usa `@notionhq/notion-mcp-server` para permitir búsquedas, lecturas y actualizaciones en Notion.
+- Google MCP: usa `@modelcontextprotocol/server-gdrive` para acceso a Google Drive; se puede extender a Calendar/Gmail.
 
-Uses the official [`@notionhq/notion-mcp-server`](https://github.com/makenotion/notion-mcp-server) package. The agent can search, read, and update Notion pages and databases.
-
-### Google MCP
-
-Uses [`@modelcontextprotocol/server-gdrive`](https://github.com/modelcontextprotocol/servers/tree/main/src/gdrive) to give the agent access to Google Drive. Additional Google services (Calendar, Gmail, …) can be added by extending `src/tools/google_mcp.py`.
+Consulta `src/tools/notion_mcp.py` y `src/tools/google_mcp.py` para ver cómo están integradas.
 
 ---
 
-## Adding a new interface
+## Desarrollo
 
-1. Create a new directory under `src/interfaces/` (e.g. `src/interfaces/whatsapp/`).
-2. Import `create_agent` from `src.agent.agent` and implement the messaging loop.
-3. Call your new interface's `run` function from `src/main.py`.
+- Ejecuta `pip install -r requirements.txt` para dependencias Python.
+- Añade linters/tests según convenga (no incluidos por defecto).
+
+Recomendación para contribuir: abre PRs pequeñas y descriptivas; documenta cambios en `CHANGELOG.md` si aplicas cambios notables.
+
+---
+
+## Cómo contribuir
+
+1. Fork del repositorio.
+2. Crea una rama con un nombre descriptivo.
+3. Haz cambios y añade tests si aplican.
+4. Abre un Pull Request describiendo el propósito del cambio.
+
+---
+
+## Licencia y contacto
+
+Proyecto: Work Assistant — licencia por determinar (añade `LICENSE` si quieres especificarla).
+Para dudas o soporte, abre un issue o contacta al mantenedor en el repositorio.
