@@ -1,0 +1,26 @@
+services:
+  - name: work-assistant
+    plan: free
+    region: eu
+    runtime: python
+    buildCommand: pip install -e .
+    startCommand: python -m src.main
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_ALLOWED_USERS
+        sync: false
+      - key: NOTION_API_KEY
+        sync: false
+      - key: TELEGRAM_WEBHOOK_URL
+        fromService:
+          name: work-assistant
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: PORT
+        value: "10000"
+      - key: AGENT_LANGUAGE
+        value: English
+    autoDeploy: true
+    healthCheckPath: /
