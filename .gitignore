@@ -136,6 +136,7 @@ celerybeat.pid
 
 # Environments
 .env
+docker-compose.override.yml
 gcp-oauth.keys.json
 
 # Agent local skills and config
