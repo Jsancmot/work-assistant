@@ -7,31 +7,51 @@ and can be reused by future interfaces (WhatsApp, Teams, …).
 """
 
 import asyncio
-import logging
+import os
+from datetime import datetime
 
+from loguru import logger
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from src.agent.agent import create_agent
-from src.config import TELEGRAM_BOT_TOKEN
+from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
 
-logger = logging.getLogger(__name__)
+logger.add(
+    "logs/{time:YYYY-MM-DD}.log",
+    rotation="1 day",
+    retention="30 days",
+    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
+    serialize=True,
+)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Handle the /start command."""
+    user_id = update.effective_user.id
+    if TELEGRAM_ALLOWED_USERS and user_id not in TELEGRAM_ALLOWED_USERS:
+        await update.message.reply_text("⛔ You are not authorized to use this bot.")
+        logger.warning(f"[{user_id}] Unauthorized /start attempt")
+        return
+
     await update.message.reply_text(
         "👋 Hello! I'm your work assistant. How can I help you today?"
     )
+    logger.info(f"[{user_id}] User started bot")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Forward every user message to the agent and reply with its response."""
-    user_text = update.message.text
-    logger.info("Received message from user %s", update.effective_user.id)
+    user_id = update.effective_user.id
+    if TELEGRAM_ALLOWED_USERS and user_id not in TELEGRAM_ALLOWED_USERS:
+        await update.message.reply_text("⛔ You are not authorized to use this bot.")
+        logger.warning(f"[{user_id}] Unauthorized message")
+        return
 
-    # Retrieve or create a per-chat agent instance stored in chat_data
+    user_text = update.message.text
+    logger.info(f"[{user_id}] User message: {user_text}")
+
     if "agent" not in context.chat_data:
         context.chat_data["agent"] = create_agent()
     agent = context.chat_data["agent"]
@@ -39,14 +59,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_chat_action("typing")
 
     try:
-        # Run the synchronous agent call in a thread to avoid blocking the event loop
         response = await asyncio.to_thread(agent.run, user_text)
         reply = response.content if hasattr(response, "content") else str(response)
     except Exception as exc:
-        logger.exception("Agent error: %s", exc)
+        logger.exception(f"[{user_id}] Agent error: {exc}")
         reply = "⚠️ An error occurred while processing your request. Please try again."
 
-    # Try Markdown first; fall back to plain text if parsing fails
+    logger.info(f"[{user_id}] Agent response: {reply[:500]}")
+
     try:
         await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
     except Exception:
@@ -66,5 +86,16 @@ def run_bot() -> None:
         MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message)
     )
 
-    logger.info("Starting Telegram bot…")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    webhook_mode = os.environ.get("TELEGRAM_WEBHOOK_URL")
+    if webhook_mode:
+        webhook_url = f"{webhook_mode}/webhook"
+        application.run_webhook(
+            listen="0.0.0.0",
+            port=int(os.environ.get("PORT", 10000)),
+            url_path="webhook",
+            allowed_updates=Update.ALL_TYPES,
+        )
+        logger.info("Starting Telegram bot in webhook mode…")
+    else:
+        logger.info("Starting Telegram bot in polling mode…")
+        application.run_polling(allowed_updates=Update.ALL_TYPES)

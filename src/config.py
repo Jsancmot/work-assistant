@@ -1,4 +1,5 @@
 import os
+from typing import Set
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -9,14 +10,15 @@ GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # Telegram
 TELEGRAM_BOT_TOKEN: str = os.environ["TELEGRAM_BOT_TOKEN"]
+TELEGRAM_ALLOWED_USERS: Set[int] = set(
+    int(x.strip()) for x in os.getenv("TELEGRAM_ALLOWED_USERS", "").split(",") if x.strip()
+)
 
 # Notion MCP
 NOTION_API_KEY: str = os.environ["NOTION_API_KEY"]
 
-# Google MCP – path to the OAuth credentials file issued by Google Cloud Console
-GOOGLE_CREDENTIALS_FILE: str = os.getenv(
-    "GOOGLE_CREDENTIALS_FILE", "credentials.json"
-)
+# Google Calendar MCP – path to OAuth credentials JSON file from Google Cloud Console
+GOOGLE_OAUTH_CREDENTIALS: str = os.getenv("GOOGLE_OAUTH_CREDENTIALS", "gcp-oauth.keys.json")
 
 # Agent
 AGENT_NAME: str = os.getenv("AGENT_NAME", "Work Assistant")
@@ -28,3 +30,4 @@ AGENT_INSTRUCTIONS: str = os.getenv(
         "their tasks, notes, calendar, and documents."
     ),
 )
+AGENT_LANGUAGE: str = os.getenv("AGENT_LANGUAGE", "English")
