@@ -69,8 +69,8 @@ The architecture is intentionally layered so that new interfaces (WhatsApp, Team
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ | OpenAI API key used by the agent |
-| `OPENAI_MODEL` | — | Model name (default: `gpt-4o`) |
+| `GROQ_API_KEY` | ✅ | Groq API key used by the agent (free at [console.groq.com](https://console.groq.com)) |
+| `GROQ_MODEL` | — | Model name (default: `llama-3.3-70b-versatile`) |
 | `TELEGRAM_BOT_TOKEN` | ✅ | Token from [@BotFather](https://t.me/BotFather) |
 | `NOTION_API_KEY` | ✅ | Notion integration secret |
 | `GOOGLE_CREDENTIALS_FILE` | ✅ | Path to the Google OAuth 2.0 credentials JSON file |

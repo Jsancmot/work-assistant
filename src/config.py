@@ -3,9 +3,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# LLM
-OPENAI_API_KEY: str = os.environ["OPENAI_API_KEY"]
-OPENAI_MODEL: str = os.getenv("OPENAI_MODEL", "gpt-4o")
+# LLM – Groq
+GROQ_API_KEY: str = os.environ["GROQ_API_KEY"]
+GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 
 # Telegram
 TELEGRAM_BOT_TOKEN: str = os.environ["TELEGRAM_BOT_TOKEN"]
