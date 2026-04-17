@@ -1,0 +1,9 @@
+services:
+  work-assistant:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    # Mount the Google credentials file if it lives outside the image
+    volumes:
+      - ${GOOGLE_CREDENTIALS_FILE:-./credentials.json}:/app/credentials.json:ro
