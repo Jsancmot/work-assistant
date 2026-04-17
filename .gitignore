@@ -137,6 +137,11 @@ celerybeat.pid
 # Environments
 .env
 gcp-oauth.keys.json
+
+# Agent local skills and config
+.agents/
+.clueai/
+.claude/
 .envrc
 .venv
 env/

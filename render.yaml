@@ -1,5 +1,6 @@
 services:
   - name: work-assistant
+    type: web
     plan: free
     region: eu
     runtime: python
