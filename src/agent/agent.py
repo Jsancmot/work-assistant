@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 async def create_agent() -> Agent:
     """Instantiate and return the work-assistant Agno agent (async)."""
-    logger.info("Creating Notion MCP tools...")
+    logger.info("Creating Notion tools...")
 
     from src.tools.notion_mcp import get_notion_tools
-    notion_tools = await get_notion_tools()
+    notion_tools = get_notion_tools()
 
     instructions = f"{AGENT_INSTRUCTIONS} Always respond in {AGENT_LANGUAGE}."
 
