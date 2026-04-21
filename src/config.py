@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Environment
-ENVIRONMENT: str = os.getenv("ENVIRONMENT", "local")
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "prod")
 IS_LOCAL: bool = ENVIRONMENT == "local"
 IS_DEV: bool = ENVIRONMENT == "dev"
 IS_PROD: bool = ENVIRONMENT == "prod"
