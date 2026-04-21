@@ -18,13 +18,15 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from src.agent.agent import create_agent
 from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
 
-logger.add(
-    "logs/{time:YYYY-MM-DD}.log",
-    rotation="1 day",
-    retention="30 days",
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
-    serialize=True,
-)
+# Only add file logger if not in serverless environment (Vercel)
+if not os.environ.get("TELEGRAM_WEBHOOK_URL"):
+    logger.add(
+        "logs/{time:YYYY-MM-DD}.log",
+        rotation="1 day",
+        retention="30 days",
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
+        serialize=True,
+    )
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
