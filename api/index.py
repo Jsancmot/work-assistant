@@ -67,9 +67,13 @@ async def health_check():
 async def set_webhook():
     """Set webhook URL (call once after deploy)."""
     webhook_url = os.environ.get("TELEGRAM_WEBHOOK_URL")
+    logger.info(f"Setting webhook to: {webhook_url}/webhook")
+    
     if not webhook_url:
         return {"error": "TELEGRAM_WEBHOOK_URL not set"}
 
     bot = app.state.bot
-    await bot.bot.set_webhook(f"{webhook_url}/webhook")
+    logger.info(f"Bot object: {bot}")
+    result = await bot.bot.set_webhook(f"{webhook_url}/webhook")
+    logger.info(f"Webhook set result: {result}")
     return {"status": "webhook set", "url": f"{webhook_url}/webhook"}
