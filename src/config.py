@@ -23,6 +23,14 @@ TELEGRAM_ALLOWED_USERS: Set[int] = set(
 # Notion MCP
 NOTION_API_KEY: str = os.environ["NOTION_API_KEY"]
 
+
+def get_user_notion_api_key(user_id: int) -> str:
+    """Return the Notion API key for a specific Telegram user.
+
+    Looks for NOTION_API_KEY_<user_id> first; falls back to NOTION_API_KEY.
+    """
+    return os.getenv(f"NOTION_API_KEY_{user_id}", NOTION_API_KEY)
+
 # Google Calendar MCP – path to OAuth credentials JSON file from Google Cloud Console
 GOOGLE_OAUTH_CREDENTIALS: str = os.getenv("GOOGLE_OAUTH_CREDENTIALS", "gcp-oauth.keys.json")
 

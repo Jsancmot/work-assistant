@@ -12,12 +12,16 @@ from src.config import AGENT_INSTRUCTIONS, AGENT_NAME, AGENT_LANGUAGE, GROQ_API_
 logger = logging.getLogger(__name__)
 
 
-async def create_agent() -> Agent:
-    """Instantiate and return the work-assistant Agno agent (async)."""
+async def create_agent(notion_api_key: str | None = None) -> Agent:
+    """Instantiate and return the work-assistant Agno agent (async).
+
+    Args:
+        notion_api_key: Notion API key to use. If None, falls back to NOTION_API_KEY env var.
+    """
     logger.info("Creating Notion tools...")
 
     from src.tools.notion_mcp import get_notion_tools
-    notion_tools = get_notion_tools()
+    notion_tools = get_notion_tools(api_key=notion_api_key)
 
     instructions = f"{AGENT_INSTRUCTIONS} Always respond in {AGENT_LANGUAGE}."
 

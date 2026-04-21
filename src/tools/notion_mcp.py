@@ -9,18 +9,22 @@ from agno.tools.notion import NotionTools
 
 logger = logging.getLogger(__name__)
 
-_notion_tools: NotionTools | None = None
+# Cache keyed by API key so each user gets their own instance
+_notion_tools_cache: dict[str, NotionTools] = {}
 
 
-def get_notion_tools() -> NotionTools:
-    """Return cached NotionTools instance."""
-    global _notion_tools
-    if _notion_tools is not None:
-        return _notion_tools
+def get_notion_tools(api_key: str | None = None) -> NotionTools:
+    """Return a NotionTools instance for the given API key.
 
-    logger.info("Creating Notion tools...")
-    from src.config import NOTION_API_KEY
+    If no key is provided, falls back to the global NOTION_API_KEY from config.
+    Results are cached per API key.
+    """
+    if api_key is None:
+        from src.config import NOTION_API_KEY
+        api_key = NOTION_API_KEY
 
-    _notion_tools = NotionTools(api_key=NOTION_API_KEY)
-    logger.info("Notion tools ready")
-    return _notion_tools
+    if api_key not in _notion_tools_cache:
+        logger.info("Creating Notion tools for key ...%s", api_key[-6:])
+        _notion_tools_cache[api_key] = NotionTools(api_key=api_key)
+
+    return _notion_tools_cache[api_key]

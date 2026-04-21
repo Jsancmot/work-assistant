@@ -16,7 +16,7 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from src.agent.agent import create_agent
-from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, IS_LOCAL
+from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, IS_LOCAL, get_user_notion_api_key
 
 import sys
 
@@ -63,7 +63,8 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"[{user_id}] User message: {user_text}")
 
     if "agent" not in context.chat_data:
-        context.chat_data["agent"] = await create_agent()
+        notion_key = get_user_notion_api_key(user_id)
+        context.chat_data["agent"] = await create_agent(notion_api_key=notion_key)
     agent = context.chat_data["agent"]
 
     await update.message.reply_chat_action("typing")
