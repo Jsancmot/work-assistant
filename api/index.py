@@ -1,6 +1,9 @@
 """
 Vercel serverless entry point for the Telegram bot.
 Uses FastAPI to handle webhook requests from Telegram.
+
+Note: This file is only used in dev/prod environments (serverless/Vercel).
+For local development, use `python -m src.main` which runs in polling mode.
 """
 
 import os
@@ -14,8 +17,13 @@ from loguru import logger
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from src.config import TELEGRAM_BOT_TOKEN
+from src.config import TELEGRAM_BOT_TOKEN, IS_LOCAL
 from src.interfaces.telegram.bot import start, handle_message
+
+# This module should only be loaded in serverless environments
+if IS_LOCAL:
+    logger.warning("api/index.py is designed for serverless environments. "
+                   "Use `python -m src.main` for local development.")
 
 app = FastAPI()
 

@@ -4,6 +4,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Environment
+ENVIRONMENT: str = os.getenv("ENVIRONMENT", "local")
+IS_LOCAL: bool = ENVIRONMENT == "local"
+IS_DEV: bool = ENVIRONMENT == "dev"
+IS_PROD: bool = ENVIRONMENT == "prod"
+
 # LLM – Groq
 GROQ_API_KEY: str = os.environ["GROQ_API_KEY"]
 GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")

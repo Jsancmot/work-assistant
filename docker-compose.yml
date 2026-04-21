@@ -6,3 +6,4 @@ services:
       - .env
     volumes:
       - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
+      - ./logs:/app/logs

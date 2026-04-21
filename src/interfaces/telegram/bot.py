@@ -16,10 +16,10 @@ from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 from src.agent.agent import create_agent
-from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
+from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, IS_LOCAL
 
-# Only add file logger if not running on Vercel (which has read-only filesystem)
-if not os.environ.get("VERCEL"):
+# Only add file logger in local environment (Docker)
+if IS_LOCAL:
     logger.add(
         "logs/{time:YYYY-MM-DD}.log",
         rotation="1 day",
