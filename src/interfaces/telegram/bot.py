@@ -53,13 +53,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     logger.info(f"[{user_id}] User message: {user_text}")
 
     if "agent" not in context.chat_data:
-        context.chat_data["agent"] = create_agent()
+        context.chat_data["agent"] = await create_agent()
     agent = context.chat_data["agent"]
 
     await update.message.reply_chat_action("typing")
 
     try:
-        response = await asyncio.to_thread(agent.run, user_text)
+        response = await agent.arun(user_text)
         reply = response.content if hasattr(response, "content") else str(response)
     except Exception as exc:
         logger.exception(f"[{user_id}] Agent error: {exc}")

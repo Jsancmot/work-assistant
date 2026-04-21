@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 _notion_tools: MCPTools | None = None
 
 
-def get_notion_tools() -> MCPTools:
-    """Return cached Notion MCP tools instance."""
+async def get_notion_tools() -> MCPTools:
+    """Return cached Notion MCP tools instance (async)."""
     global _notion_tools
     if _notion_tools is not None:
         return _notion_tools
@@ -31,10 +31,7 @@ def get_notion_tools() -> MCPTools:
         command="npx -y @notionhq/notion-mcp-server",
     )
 
-    def _run():
-        asyncio.run(_notion_tools.connect())
-
-    _run()
+    await _notion_tools.connect()
 
     logger.info(f"Notion MCP tools loaded: {len(_notion_tools.tools)}")
     return _notion_tools
