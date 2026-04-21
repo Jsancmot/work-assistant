@@ -18,8 +18,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from src.agent.agent import create_agent
 from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS
 
-# Only add file logger if not in serverless environment (Vercel)
-if not os.environ.get("TELEGRAM_WEBHOOK_URL"):
+# Only add file logger if not running on Vercel (which has read-only filesystem)
+if not os.environ.get("VERCEL"):
     logger.add(
         "logs/{time:YYYY-MM-DD}.log",
         rotation="1 day",
