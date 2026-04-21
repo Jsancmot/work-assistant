@@ -18,6 +18,8 @@ from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandl
 from src.agent.agent import create_agent
 from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, IS_LOCAL
 
+import sys
+
 # Only add file logger in local environment (Docker)
 if IS_LOCAL:
     logger.add(
@@ -26,6 +28,12 @@ if IS_LOCAL:
         retention="30 days",
         format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
         serialize=True,
+    )
+else:
+    logger.add(
+        lambda msg: print(msg.strip(), flush=True),
+        format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {message}",
+        colorize=False,
     )
 
 
