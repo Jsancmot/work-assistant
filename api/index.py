@@ -10,13 +10,12 @@ import os
 import sys
 from contextlib import asynccontextmanager
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from fastapi import FastAPI, Request, Response
 from loguru import logger
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-
-# Add src to path for imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from src.config import TELEGRAM_BOT_TOKEN, IS_LOCAL
 from src.interfaces.telegram.bot import start, handle_message
