@@ -27,8 +27,8 @@ async def create_agent() -> Agent:
         tools=[notion_tools],
         instructions=instructions,
         markdown=True,
-        add_history_to_messages=True,
-        num_history_responses=3,
+        add_history_to_context=True,
+        num_history_runs=3,
     )
     logger.info("Agent created successfully")
     return agent
