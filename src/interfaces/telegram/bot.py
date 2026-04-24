@@ -1,26 +1,29 @@
 """
-Telegram bot interface for the work-assistant agent.
-
-Each user message is forwarded to the Agno agent and the response is sent back.
-The interface is intentionally thin so that the agent logic stays framework-agnostic
-and can be reused by future interfaces (WhatsApp, Teams, …).
+Telegram bot interface using LangGraph agent.
 """
 
-import asyncio
 import os
-from datetime import datetime
+import time
 
 from loguru import logger
 from telegram import Update
 from telegram.constants import ParseMode
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
-from src.agent.agent import create_agent
-from src.config import TELEGRAM_BOT_TOKEN, TELEGRAM_ALLOWED_USERS, IS_LOCAL, get_user_notion_api_key
+from src.config import (
+    TELEGRAM_BOT_TOKEN,
+    TELEGRAM_ALLOWED_USERS,
+    IS_LOCAL,
+    OLLAMA_MODEL,
+    OLLAMA_HOST,
+    AGENT_INSTRUCTIONS,
+)
+from src.tools.notion_mcp import get_notion_tools
+from src.agent.langgraph_agent import create_langgraph_agent, run_agent
 
-import sys
+if IS_LOCAL:
+    from langchain_ollama import ChatOllama
 
-# Only add file logger in local environment (Docker)
 if IS_LOCAL:
     logger.add(
         "logs/{time:YYYY-MM-DD}.log",
@@ -52,43 +55,89 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Forward every user message to the agent and reply with its response."""
+    """Forward user message to LangGraph agent."""
     user_id = update.effective_user.id
+    username = update.effective_user.username or update.effective_user.full_name
     if TELEGRAM_ALLOWED_USERS and user_id not in TELEGRAM_ALLOWED_USERS:
         await update.message.reply_text("⛔ You are not authorized to use this bot.")
-        logger.warning(f"[{user_id}] Unauthorized message")
+        logger.warning(f"[{user_id}] Unauthorized message from @{username}")
         return
 
     user_text = update.message.text
-    logger.info(f"[{user_id}] User message: {user_text}")
+    logger.info(f"[{user_id}] (@{username}) User message ({len(user_text)} chars): {user_text}")
 
     if "agent" not in context.chat_data:
-        notion_key = get_user_notion_api_key(user_id)
-        context.chat_data["agent"] = await create_agent(notion_api_key=notion_key)
+        logger.info(f"[{user_id}] No cached agent found — initializing new agent")
+        t_init = time.perf_counter()
+
+        logger.info(f"[{user_id}] Loading model: {OLLAMA_MODEL} @ {OLLAMA_HOST} (num_ctx=8192)")
+        model = ChatOllama(model=OLLAMA_MODEL, base_url=OLLAMA_HOST, num_ctx=4096)
+
+        all_tools = get_notion_tools()
+        if not all_tools:
+            logger.error(f"[{user_id}] No Notion tools available — Notion MCP may be unreachable")
+            await update.message.reply_text(
+                "⚠️ No puedo conectarme a Notion en este momento. "
+                "El servidor MCP no está disponible. Inténtalo de nuevo en unos segundos."
+            )
+            return
+        loaded_names = [t.name for t in all_tools]
+        logger.info(f"[{user_id}] Tools loaded: {len(all_tools)} — {loaded_names}")
+
+        prompt_chars = len(AGENT_INSTRUCTIONS)
+        logger.info(f"[{user_id}] System prompt size: {prompt_chars} chars (~{prompt_chars // 4} tokens)")
+
+        agent = create_langgraph_agent(
+            tools=all_tools,
+            model=model,
+            system_prompt=AGENT_INSTRUCTIONS,
+            user_id=user_id,
+        )
+
+        context.chat_data["agent"] = agent
+        elapsed_init = time.perf_counter() - t_init
+        logger.info(f"[{user_id}] Agent initialized in {elapsed_init:.2f}s")
+    else:
+        logger.debug(f"[{user_id}] Reusing cached agent")
+
     agent = context.chat_data["agent"]
 
     await update.message.reply_chat_action("typing")
 
+    t_invoke = time.perf_counter()
+    logger.info(f"[{user_id}] Invoking agent...")
     try:
-        response = await agent.arun(user_text)
-        reply = response.content if hasattr(response, "content") else str(response)
+        reply = await run_agent(agent, user_text, user_id)
     except Exception as exc:
         logger.exception(f"[{user_id}] Agent error: {exc}")
-        reply = "⚠️ An error occurred while processing your request. Please try again."
+        reply = "⚠️ An error occurred. Please try again."
 
-    logger.info(f"[{user_id}] Agent response: {reply[:500]}")
+    elapsed_invoke = time.perf_counter() - t_invoke
+    logger.info(
+        f"[{user_id}] Agent responded in {elapsed_invoke:.2f}s "
+        f"({len(reply)} chars): {reply[:300]}"
+    )
 
     try:
         await update.message.reply_text(reply, parse_mode=ParseMode.MARKDOWN)
     except Exception:
+        logger.warning(f"[{user_id}] Markdown parse failed, retrying as plain text")
         await update.message.reply_text(reply)
 
 
+async def shutdown(application: "Application") -> None:
+    logger.info("Bot shutdown")
+
+
 def run_bot() -> None:
-    """Build and start the Telegram bot (blocking)."""
+    """Build and start the Telegram bot."""
+    from src.tools.notion_mcp import init_notion_mcp_tools
+    init_notion_mcp_tools()
+    
     application = (
         Application.builder()
         .token(TELEGRAM_BOT_TOKEN)
+        .post_shutdown(shutdown)
         .build()
     )
 
@@ -107,7 +156,7 @@ def run_bot() -> None:
             webhook_url=webhook_url,
             allowed_updates=Update.ALL_TYPES,
         )
-        logger.info("Starting Telegram bot in webhook mode…")
+        logger.info("Starting Telegram bot in webhook mode")
     else:
-        logger.info("Starting Telegram bot in polling mode…")
+        logger.info("Starting Telegram bot in polling mode")
         application.run_polling(allowed_updates=Update.ALL_TYPES)

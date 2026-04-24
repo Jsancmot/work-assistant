@@ -7,20 +7,32 @@ from agno.tools.mcp import MCPTools
 from mcp import StdioServerParameters
 
 from src.config import GOOGLE_OAUTH_CREDENTIALS
-
-_google_tools: MCPTools | None = None
+from src.utils import strip_patterns
 
 
 def get_google_tools() -> MCPTools:
-    """Return a cached MCPTools instance connected to the Google Calendar MCP server."""
-    global _google_tools
-    if _google_tools is None:
-        server_params = StdioServerParameters(
-            command="npx",
-            args=["-y", "@cocal/google-calendar-mcp"],
-            env={
-                "GOOGLE_OAUTH_CREDENTIALS": GOOGLE_OAUTH_CREDENTIALS,
-            },
-        )
-        _google_tools = MCPTools(server_params=server_params)
-    return _google_tools
+    """Return an MCPTools instance connected to the Google Calendar MCP server.
+
+    The returned instance must be used as an async context manager to start
+    the underlying npx subprocess.
+    """
+    server_params = StdioServerParameters(
+        command="npx",
+        args=["-y", "@cocal/google-calendar-mcp"],
+        env={
+            "GOOGLE_OAUTH_CREDENTIALS": GOOGLE_OAUTH_CREDENTIALS,
+        },
+    )
+    return MCPTools(server_params=server_params)
+
+
+def patch_tool_schemas(tools: MCPTools) -> None:
+    """Remove invalid regex 'pattern' fields from tool parameter schemas.
+
+    Groq rejects JSON schemas with lookahead regexes (e.g. in create-event).
+    This patches the schemas in-place after the MCP server has started.
+    """
+    for func in (getattr(tools, "functions", None) or {}).values():
+        params = getattr(func, "parameters", None)
+        if isinstance(params, dict):
+            strip_patterns(params)

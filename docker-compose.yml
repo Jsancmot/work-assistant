@@ -1,9 +1,53 @@
 services:
+  notion-mcp:
+    image: node:20-alpine
+    command: npx -y @notionhq/notion-mcp-server --transport http --port 3000 --auth-token ${NOTION_MCP_SECRET}
+    environment:
+      - NOTION_TOKEN=${NOTION_API_KEY}
+      - AUTH_TOKEN=${NOTION_MCP_SECRET}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/health', r => process.exit(r.statusCode < 400 ? 0 : 1)).on('error', () => process.exit(1))\""]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 90s
+
   work-assistant:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.${ENVIRONMENT}
     restart: unless-stopped
     env_file:
       - .env
     volumes:
       - ./gcp-oauth.keys.json:/app/gcp-oauth.keys.json:ro
       - ./logs:/app/logs
+      - agent_data:/app/data
+      - google_calendar_tokens:/root/.config/google-calendar-mcp
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - NOTION_MCP_URL=http://notion-mcp:3000/mcp
+    depends_on:
+      notion-mcp:
+        condition: service_healthy
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  agent_data:
+  google_calendar_tokens:
+  ollama_data:
