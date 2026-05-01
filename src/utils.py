@@ -11,7 +11,7 @@ def strip_patterns(obj: object) -> None:
     """
     if isinstance(obj, dict):
         obj.pop("pattern", None)
-        for v in list(obj.values()):
+        for v in obj.values():
             strip_patterns(v)
     elif isinstance(obj, list):
         for item in obj:

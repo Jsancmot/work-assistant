@@ -49,10 +49,10 @@ GOOGLE_OAUTH_CREDENTIALS: str = os.getenv("GOOGLE_OAUTH_CREDENTIALS", "gcp-oauth
 # Agent
 AGENT_NAME: str = os.getenv("AGENT_NAME", "Work Assistant")
 
-def _build_agent_instructions() -> str:
+def _build_main_agent_instructions() -> str:
     """Compose the agent system prompt from the base file and per-tool files."""
     prompts_dir = Path(__file__).parent / "prompts"
-    base_file = prompts_dir / "agent_instructions.md"
+    base_file = prompts_dir / "main_agent.md"
     base = base_file.read_text(encoding="utf-8") if base_file.exists() else (
         "You are a helpful work assistant. "
         "Only use tools that are actually available to you. "
@@ -67,5 +67,12 @@ def _build_agent_instructions() -> str:
         return base + "\n\n" + "\n\n".join(tool_sections)
     return base
 
-AGENT_INSTRUCTIONS: str = os.getenv("AGENT_INSTRUCTIONS") or _build_agent_instructions()
+def _build_notion_agent_instructions() -> str:
+    """Read the notion agent instructions."""
+    prompts_dir = Path(__file__).parent / "prompts"
+    base_file = prompts_dir / "notion_agent.md"
+    return base_file.read_text(encoding="utf-8") if base_file.exists() else ""
+
+AGENT_INSTRUCTIONS: str = os.getenv("AGENT_INSTRUCTIONS") or _build_main_agent_instructions()
+NOTION_AGENT_INSTRUCTIONS: str = _build_notion_agent_instructions()
 AGENT_LANGUAGE: str = os.getenv("AGENT_LANGUAGE", "English")
